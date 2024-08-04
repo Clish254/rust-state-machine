@@ -29,17 +29,20 @@ impl<T: Config> Pallet<T> {
 
 	// This function can be used to increment the block number.
 	// Increases the block number by one.
-	pub fn inc_block_number(&mut self) {
-		let incremented = self.block_number.checked_add(&T::BlockNumber::one()).unwrap();
+	pub fn inc_block_number(&mut self) -> crate::support::DispatchResult {
+		let incremented =
+			self.block_number.checked_add(&T::BlockNumber::one()).ok_or("Overflow")?;
 		self.block_number = incremented;
+		Ok(())
 	}
 
 	// Increment the nonce of an account. This helps us keep track of how many transactions each
 	// account has made.
-	pub fn inc_nonce(&mut self, who: &T::AccountId) {
+	pub fn inc_nonce(&mut self, who: &T::AccountId) -> crate::support::DispatchResult {
 		let user_nonce = *self.nonce.get(who).unwrap_or(&T::Nonce::zero());
-		let new_nonce = user_nonce.checked_add(&T::Nonce::one()).unwrap();
+		let new_nonce = user_nonce.checked_add(&T::Nonce::one()).ok_or("Overflow")?;
 		self.nonce.insert(who.to_owned(), new_nonce);
+		Ok(())
 	}
 }
 
@@ -54,8 +57,8 @@ mod test {
 	#[test]
 	fn init_system() {
 		let mut system = super::Pallet::<TestConfig>::new();
-		system.inc_block_number();
-		system.inc_nonce(&"alice".to_string());
+		let _ = system.inc_block_number();
+		let _ = system.inc_nonce(&"alice".to_string());
 
 		assert_eq!(system.block_number(), 1);
 		assert_eq!(system.nonce.get("alice"), Some(&1));
